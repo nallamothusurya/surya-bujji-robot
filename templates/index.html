@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Force the latest IE rendering engine -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Enable full-screen web app mode for iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Bujji the Robot (Face Only)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <!-- Include Recorder.js for audio fallback (WAV output) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recorderjs/0.1.0/recorder.min.js"></script>
+  <style>
+    /* Responsive container */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    body {
+      background: linear-gradient(-45deg, #2d2d2d, rgb(255, 0, 0), #0bf, #000);
+      background-repeat: no-repeat;
+      background-size: cover;
+      transition: background 0.5s ease;
+      -webkit-transition: background 0.5s ease;
+    }
+    body.speaking {
+      background: linear-gradient(-45deg, #e16100, #b500e2, #00acd3, #23d5ab);
+      background-size: 400% 400%;
+      animation: gradientShift 8s ease infinite;
+      -webkit-animation: gradientShift 8s ease infinite;
+    }
+    @-webkit-keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    #languageSelect,
+    #microphoneBtn {
+      display: block;
+      margin: 10px auto;
+    }
+    #languageSelect {
+      padding: 5px 10px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #microphoneBtn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #eee;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      -webkit-transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    #microphoneBtn:hover {
+      background-color: #ddd;
+    }
+    #microphoneBtn::before {
+      content: "\f130";
+      font-family: "Font Awesome 5 Free";
+      font-weight: 900;
+      font-size: 1.5rem;
+      color: #555;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      -webkit-transform: translate(-50%, -50%);
+    }
+    #microphoneBtn.active {
+      background-color: #dc3545;
+      box-shadow: 0 0 15px rgba(220,53,69,0.6);
+    }
+    #microphoneBtn.active::before {
+      color: #fff;
+    }
+    #microphoneBtn.active::after {
+      content: '';
+      position: absolute;
+      width: 120%;
+      height: 120%;
+      top: -10%;
+      left: -10%;
+      background-color: rgba(220, 53, 69, 0.3);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      -webkit-animation: pulse 1.5s infinite;
+      z-index: -1;
+    }
+    @-webkit-keyframes pulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    #textFallback {
+      display: none;
+      text-align: center;
+      margin: 20px auto;
+    }
+    #textInput {
+      padding: 10px;
+      width: 70%;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #sendTextBtn {
+      padding: 10px 15px;
+      font-size: 1rem;
+      margin-left: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0f1a1e;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      -webkit-transition: background-color 0.3s ease;
+    }
+    #sendTextBtn:hover {
+      background-color: #333;
+    }
+    #robotFace {
+      display: block;
+      margin: 20px auto;
+      border: 3px solid #0f1a1e;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(15,26,30,0.3);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      -webkit-transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      width: 90%;
+      max-width: 300px;
+    }
+    body.speaking #robotFace {
+      border-color: #dc3545;
+      animation: pulseBorder 1.5s infinite;
+      -webkit-animation: pulseBorder 1.5s infinite;
+    }
+    @-webkit-keyframes pulseBorder {
+      0% { box-shadow: 0 0 5px rgba(220,53,69,0.5); }
+      50% { box-shadow: 0 0 20px rgba(220,53,69,1); }
+      100% { box-shadow: 0 0 5px rgba(220,53,69,0.5); }
+    }
+    @keyframes pulseBorder {
+      0% { box-shadow: 0 0 5px rgba(220,53,69,0.5); }
+      50% { box-shadow: 0 0 20px rgba(220,53,69,1); }
+      100% { box-shadow: 0 0 5px rgba(220,53,69,0.5); }
+    }
+    #conversation {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.95rem;
+    }
+    #conversation p {
+      margin: 5px 0;
+      line-height: 1.4;
+    }
+    audio {
+      margin: 10px auto;
+      display: block;
+      width: 100%;
+      max-width: 300px;
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 1.5rem; }
+      #microphoneBtn { width: 50px; height: 50px; }
+      #microphoneBtn::before { font-size: 1.25rem; }
+      #conversation { max-height: 200px; padding: 10px; }
+      #textInput { width: 60%; }
+    }
+    .author {
+      text-align: center;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-top: 20px;
+      font-style: italic;
+      opacity: 0.8;
+        }
+    .author a {
+      color: rgb(0, 253, 21);
+      transition: color 0.3s ease;
+      text-decoration:none;
+      font-weight:bolder;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bujji the Robot</h1>
+    <select id="languageSelect"></select>
+    <button id="microphoneBtn" aria-label="Microphone"></button>
+    
+    <!-- Fallback text input shown if audio capture is unavailable -->
+    <div id="textFallback">
+      <p>Your browser does not support audio input. Please type your message:</p>
+      <input type="text" id="textInput" placeholder="Type your message here">
+      <button id="sendTextBtn">Send</button>
+    </div>
+    
+    <canvas id="robotFace" width="300" height="300"></canvas>
+    <div id="conversation"></div>
+    <audio id="responseAudio" controls style="display:none;"></audio>
+
+    <!-- Playback speed control with default set to 1.15× -->
+    <div style="text-align:center; margin-top:10px;">
+      <label for="speedSelect" style="color:#fff; font-size:0.9rem; margin-right:5px;">
+      </label>
+      <select id="speedSelect" style="padding:4px 8px; font-size:0.9rem; border-radius:4px; border:1px solid #ccc; display:none;">
+        <option value="0.5">0.5×</option>
+        <option value="0.75">0.75×</option>
+        <option value="1.15" selected>1.15×</option>
+        <option value="1.2">1.2×</option>
+        <option value="2">2×</option>
+      </select>
+    </div>
+    <div class="author">Developed by N.Ayyappa Venkata Surya ❤️‍🔥</div>
+    <div class="author">If any queries, message me :<a href="https://wa.me/9392567247?text=My%20Query%20%3A" target="_blank"> WhatsApp</a></div>
+  </div>
+
+  <script defer>
+    (() => {
+      'use strict';
+      
+      // Check if key APIs are available
+      if (!window.fetch) {
+        alert('Your browser does not support the Fetch API. Please update your browser.');
+      }
+      
+      const scaleFactor = 2;
+      const languageSelect = document.getElementById('languageSelect'),
+            microphoneBtn = document.getElementById('microphoneBtn'),
+            textFallback   = document.getElementById('textFallback'),
+            textInput      = document.getElementById('textInput'),
+            sendTextBtn    = document.getElementById('sendTextBtn'),
+            robotCanvas    = document.getElementById('robotFace'),
+            conversationDiv= document.getElementById('conversation'),
+            responseAudio  = document.getElementById('responseAudio'),
+            speedSelect    = document.getElementById('speedSelect'),
+            robotCtx       = robotCanvas.getContext('2d');
+
+      let conversationHistory = "";
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      let alwaysOn = !isMobile, isRecording = false, isResponsePlaying = false, querySent = false;
+      
+      const languageMap = {
+        "af": { name: "Afrikaans", locale: "af-ZA" },
+        "sq": { name: "Albanian", locale: "sq-AL" },
+        "ar": { name: "Arabic", locale: "ar-SA" },
+        "hy": { name: "Armenian", locale: "hy-AM" },
+        "bn": { name: "Bengali", locale: "bn-BD" },
+        "bs": { name: "Bosnian", locale: "bs-BA" },
+        "ca": { name: "Catalan", locale: "ca-ES" },
+        "cs": { name: "Czech", locale: "cs-CZ" },
+        "da": { name: "Danish", locale: "da-DK" },
+        "de": { name: "German", locale: "de-DE" },
+        "el": { name: "Greek", locale: "el-GR" },
+        "en": { name: "English", locale: "en-US" },
+        "eo": { name: "Esperanto", locale: "eo" },
+        "es": { name: "Spanish", locale: "es-ES" },
+        "et": { name: "Estonian", locale: "et-EE" },
+        "fi": { name: "Finnish", locale: "fi-FI" },
+        "fr": { name: "French", locale: "fr-FR" },
+        "gu": { name: "Gujarati", locale: "gu-IN" },
+        "hi": { name: "Hindi", locale: "hi-IN" },
+        "hr": { name: "Croatian", locale: "hr-HR" },
+        "hu": { name: "Hungarian", locale: "hu-HU" },
+        "is": { name: "Icelandic", locale: "is-IS" },
+        "id": { name: "Indonesian", locale: "id-ID" },
+        "it": { name: "Italian", locale: "it-IT" },
+        "ja": { name: "Japanese", locale: "ja-JP" },
+        "jw": { name: "Javanese", locale: "jv-ID" },
+        "kn": { name: "Kannada", locale: "kn-IN" },
+        "km": { name: "Khmer", locale: "km-KH" },
+        "ko": { name: "Korean", locale: "ko-KR" },
+        "la": { name: "Latin", locale: "la" },
+        "lv": { name: "Latvian", locale: "lv-LV" },
+        "mk": { name: "Macedonian", locale: "mk-MK" },
+        "ml": { name: "Malayalam", locale: "ml-IN" },
+        "mr": { name: "Marathi", locale: "mr-IN" },
+        "my": { name: "Burmese", locale: "my-MM" },
+        "ne": { name: "Nepali", locale: "ne-NP" },
+        "no": { name: "Norwegian", locale: "no-NO" },
+        "pl": { name: "Polish", locale: "pl-PL" },
+        "pt": { name: "Portuguese", locale: "pt-BR" },
+        "pa": { name: "Punjabi", locale: "pa-IN" },
+        "ro": { name: "Romanian", locale: "ro-RO" },
+        "ru": { name: "Russian", locale: "ru-RU" },
+        "sr": { name: "Serbian", locale: "sr-RS" },
+        "si": { name: "Sinhala", locale: "si-LK" },
+        "sk": { name: "Slovak", locale: "sk-SK" },
+        "su": { name: "Sundanese", locale: "su-ID" },
+        "sw": { name: "Swahili", locale: "sw-KE" },
+        "sv": { name: "Swedish", locale: "sv-SE" },
+        "ta": { name: "Tamil", locale: "ta-IN" },
+        "te": { name: "Telugu", locale: "te-IN" },
+        "th": { name: "Thai", locale: "th-TH" },
+        "tr": { name: "Turkish", locale: "tr-TR" },
+        "uk": { name: "Ukrainian", locale: "uk-UA" },
+        "ur": { name: "Urdu", locale: "ur-PK" },
+        "vi": { name: "Vietnamese", locale: "vi-VN" },
+        "cy": { name: "Welsh", locale: "cy-GB" }
+      };
+      
+      Object.keys(languageMap).forEach(code => {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = `${languageMap[code].name} (${languageMap[code].locale})`;
+        languageSelect.appendChild(option);
+      });
+
+      // Playback-rate selector: apply on change immediately
+      speedSelect.addEventListener('change', () => {
+        responseAudio.playbackRate = parseFloat(speedSelect.value);
+      });
+
+      // Check for native Speech Recognition support
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const hasSpeechRecognition = !!SpeechRecognition;
+      let recognition;
+      if (hasSpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = languageMap[languageSelect.value].locale || languageSelect.value;
+        recognition.onstart = () => {
+          isRecording = true;
+          microphoneBtn.classList.add('active');
+        };
+        recognition.onresult = event => {
+          let transcript = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              transcript = event.results[i][0].transcript.trim();
+              break;
+            }
+          }
+          if (transcript) {
+            recognition.stop();
+            querySent = true;
+            appendMessage("Me: " + transcript);
+            sendQuery(transcript);
+          }
+        };
+        recognition.onerror = event => {
+          console.error("Speech recognition error:", event);
+          isRecording = false;
+          microphoneBtn.classList.remove('active');
+        };
+        recognition.onend = () => {
+          isRecording = false;
+          microphoneBtn.classList.remove('active');
+          if (!querySent && alwaysOn && !isResponsePlaying && !isMobile) {
+            recognition.start();
+          }
+        };
+      } else {
+        // Fallback: use Recorder.js with getUserMedia for browsers that support it
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              const audioContext = new AudioContext();
+              const input = audioContext.createMediaStreamSource(stream);
+              window.recorder = new Recorder(input, { numChannels: 1 });
+              textFallback.style.display = 'none';
+            })
+            .catch(err => {
+              console.error('Audio capture error:', err);
+              textFallback.style.display = 'block';
+            });
+        } else {
+          textFallback.style.display = 'block';
+        }
+      }
+
+      let isBlinking = false, mouthOpening = 0;
+      const bufferData = { audioCtx: null, analyser: null, source: null, bufferLength: 0, dataArray: null };
+
+      const blink = () => {
+        isBlinking = true;
+        setTimeout(() => {
+          isBlinking = false;
+          setTimeout(blink, Math.random() * 3000 + 2000);
+        }, 200);
+      };
+      blink();
+
+      const createHeadGradient = () => {
+        const gradient = robotCtx.createRadialGradient(0, -10 * scaleFactor, 10 * scaleFactor, 0, 0, 45 * scaleFactor);
+        gradient.addColorStop(0, "#f4f4f4");
+        gradient.addColorStop(1, "#ccc");
+        return gradient;
+      };
+      const headGradient = createHeadGradient();
+
+      const drawRobot = () => {
+        robotCtx.clearRect(0, 0, robotCanvas.width, robotCanvas.height);
+        drawHead();
+        drawEyes();
+        drawMouth();
+      };
+
+      const drawHead = () => {
+        robotCtx.save();
+        robotCtx.translate(robotCanvas.width / 2, robotCanvas.height / 2);
+        robotCtx.fillStyle = headGradient;
+        robotCtx.beginPath();
+        robotCtx.ellipse(0, 0, 40 * scaleFactor, 45 * scaleFactor, 0, 0, Math.PI * 2);
+        robotCtx.fill();
+        [-42, 42].forEach(x => {
+          const posX = x * scaleFactor;
+          robotCtx.fillStyle = "#888";
+          robotCtx.beginPath();
+          robotCtx.arc(posX, 0, 8 * scaleFactor, 0, Math.PI * 2);
+          robotCtx.fill();
+          robotCtx.fillStyle = "#000";
+          robotCtx.beginPath();
+          robotCtx.arc(posX, 0, 4 * scaleFactor, 0, Math.PI * 2);
+          robotCtx.fill();
+        });
+        robotCtx.fillStyle = "#0f1a1e";
+        robotCtx.strokeStyle = "#ccc";
+        robotCtx.lineWidth = 1;
+        robotCtx.beginPath();
+        robotCtx.moveTo(-30 * scaleFactor, -15 * scaleFactor);
+        robotCtx.lineTo(30 * scaleFactor, -15 * scaleFactor);
+        robotCtx.quadraticCurveTo(35 * scaleFactor, -15 * scaleFactor, 35 * scaleFactor, -10 * scaleFactor);
+        robotCtx.lineTo(35 * scaleFactor, 20 * scaleFactor);
+        robotCtx.quadraticCurveTo(35 * scaleFactor, 25 * scaleFactor, 30 * scaleFactor, 25 * scaleFactor);
+        robotCtx.lineTo(-30 * scaleFactor, 25 * scaleFactor);
+        robotCtx.quadraticCurveTo(-35 * scaleFactor, 25 * scaleFactor, -35 * scaleFactor, 20 * scaleFactor);
+        robotCtx.lineTo(-35 * scaleFactor, -10 * scaleFactor);
+        robotCtx.quadraticCurveTo(-35 * scaleFactor, -15 * scaleFactor, -30 * scaleFactor, -15 * scaleFactor);
+        robotCtx.closePath();
+        robotCtx.fill();
+        robotCtx.stroke();
+        [-32, 32].forEach(x => {
+          [-12, 22].forEach(y => {
+            robotCtx.fillStyle = "#888";
+            robotCtx.beginPath();
+            robotCtx.arc(x * scaleFactor, y * scaleFactor, 3 * scaleFactor, 0, Math.PI * 2);
+            robotCtx.fill();
+            robotCtx.fillStyle = "#000";
+            robotCtx.beginPath();
+            robotCtx.arc(x * scaleFactor, y * scaleFactor, 1.5 * scaleFactor, 0, Math.PI * 2);
+            robotCtx.fill();
+          });
+        });
+        const time = Date.now();
+        const angle = Math.sin(time / 500) * 0.1745;
+        robotCtx.save();
+        robotCtx.translate(0, -45 * scaleFactor);
+        robotCtx.rotate(angle);
+        robotCtx.strokeStyle = "#0f1a1e";
+        robotCtx.lineWidth = 2;
+        robotCtx.beginPath();
+        robotCtx.moveTo(0, 0);
+        robotCtx.lineTo(0, -15 * scaleFactor);
+        robotCtx.stroke();
+        robotCtx.fillStyle = isRecording ? "#ff0" : "#f4f4f4";
+        robotCtx.beginPath();
+        robotCtx.arc(0, -20 * scaleFactor, 5 * scaleFactor, 0, Math.PI * 2);
+        robotCtx.fill();
+        robotCtx.restore();
+        robotCtx.restore();
+      };
+
+      const drawEyes = () => {
+        robotCtx.save();
+        robotCtx.translate(robotCanvas.width / 2, robotCanvas.height / 2);
+        const leftEye = { x: -15 * scaleFactor, y: 0 },
+              rightEye = { x: 15 * scaleFactor, y: 0 };
+        if (isBlinking) {
+          robotCtx.strokeStyle = "#00f8f8";
+          robotCtx.lineWidth = 2;
+          robotCtx.beginPath();
+          robotCtx.moveTo(leftEye.x - 3 * scaleFactor, leftEye.y);
+          robotCtx.lineTo(leftEye.x + 3 * scaleFactor, leftEye.y);
+          robotCtx.moveTo(rightEye.x - 3 * scaleFactor, rightEye.y);
+          robotCtx.lineTo(rightEye.x + 3 * scaleFactor, rightEye.y);
+          robotCtx.stroke();
+        } else {
+          robotCtx.fillStyle = isRecording ? "#0f0" : "#00f8f8";
+          robotCtx.beginPath();
+          robotCtx.arc(leftEye.x, leftEye.y, 5 * scaleFactor, 0, Math.PI * 2);
+          robotCtx.arc(rightEye.x, rightEye.y, 5 * scaleFactor, 0, Math.PI * 2);
+          robotCtx.fill();
+        }
+        robotCtx.restore();
+      };
+
+      const drawMouth = () => {
+        robotCtx.save();
+        robotCtx.translate(robotCanvas.width / 2, robotCanvas.height / 2);
+        const mouthY = 15 * scaleFactor,
+              mouthWidth = 30 * scaleFactor,
+              maxMouthOpening = 10 * scaleFactor;
+        if (isResponsePlaying && bufferData.analyser) {
+          bufferData.analyser.getByteFrequencyData(bufferData.dataArray);
+          const average = bufferData.dataArray.reduce((sum, value) => sum + value, 0) / bufferData.bufferLength;
+          mouthOpening = (average / 255) * maxMouthOpening;
+        } else {
+          mouthOpening = 1 * scaleFactor;
+        }
+        robotCtx.fillStyle = "#00f8f8";
+        robotCtx.beginPath();
+        robotCtx.moveTo(-mouthWidth / 2, mouthY);
+        robotCtx.lineTo(mouthWidth / 2, mouthY);
+        robotCtx.lineTo(mouthWidth / 2, mouthY - mouthOpening / 2);
+        robotCtx.lineTo(-mouthWidth / 2, mouthY - mouthOpening / 2);
+        robotCtx.closePath();
+        robotCtx.fill();
+        robotCtx.beginPath();
+        robotCtx.moveTo(-mouthWidth / 2, mouthY + mouthOpening / 2);
+        robotCtx.lineTo(mouthWidth / 2, mouthY + mouthOpening / 2);
+        robotCtx.lineTo(mouthWidth / 2, mouthY + mouthOpening);
+        robotCtx.lineTo(-mouthWidth / 2, mouthY + mouthOpening);
+        robotCtx.closePath();
+        robotCtx.fill();
+        robotCtx.restore();
+      };
+
+      const animate = () => {
+        drawRobot();
+        requestAnimationFrame(animate);
+      };
+      animate();
+
+      const setupVisualizer = () => {
+        if (!bufferData.audioCtx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          bufferData.audioCtx = new AudioContext();
+          bufferData.source = bufferData.audioCtx.createMediaElementSource(responseAudio);
+          bufferData.analyser = bufferData.audioCtx.createAnalyser();
+          bufferData.analyser.fftSize = 256;
+          bufferData.source.connect(bufferData.analyser);
+          bufferData.analyser.connect(bufferData.audioCtx.destination);
+          bufferData.bufferLength = bufferData.analyser.frequencyBinCount;
+          bufferData.dataArray = new Uint8Array(bufferData.bufferLength);
+        }
+      };
+
+      const startRecognitionIfNeeded = () => {
+        if (hasSpeechRecognition && alwaysOn && !isRecording && !isResponsePlaying && !isMobile) {
+          recognition.start();
+        }
+      };
+
+      const sendQuery = async (question) => {
+        conversationHistory += "Me: " + question + "\n";
+        try {
+          const response = await fetch('/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ history: conversationHistory })
+          });
+          const data = await response.json();
+          if (data.response.trim().toUpperCase().startsWith("OPEN:")) {
+            const url = data.response.substring(5).trim();
+            window.open(url, '_blank');
+            appendMessage("Bujji: Opening " + url);
+            querySent = false;
+            startRecognitionIfNeeded();
+          } else {
+            appendMessage("Bujji: " + data.response);
+            conversationHistory += "Bujji: " + data.response + "\n";
+            if (data.audio) {
+              playTTS("data:audio/mpeg;base64," + data.audio);
+            } else {
+              querySent = false;
+              startRecognitionIfNeeded();
+            }
+          }
+        } catch (err) {
+          console.error("Error in query:", err);
+          querySent = false;
+          startRecognitionIfNeeded();
+        }
+      };
+
+      const playTTS = (audioURL) => {
+        responseAudio.src = audioURL;
+        responseAudio.style.display = 'block';
+        // apply the user’s chosen speed
+        responseAudio.playbackRate = parseFloat(speedSelect.value);
+        isResponsePlaying = true;
+        setupVisualizer();
+        if (bufferData.audioCtx && bufferData.audioCtx.state === "suspended") {
+          bufferData.audioCtx.resume();
+        }
+        document.body.classList.add('speaking');
+        if (hasSpeechRecognition && isRecording) recognition.stop();
+        responseAudio.play().catch(error => {
+          console.error("Audio play failed:", error);
+        });
+      };
+
+      responseAudio.addEventListener('ended', () => {
+        isResponsePlaying = false;
+        document.body.classList.remove('speaking');
+        querySent = false;
+        startRecognitionIfNeeded();
+      });
+
+      microphoneBtn.addEventListener('click', () => {
+        if (hasSpeechRecognition) {
+          recognition.lang = languageMap[languageSelect.value].locale || languageSelect.value;
+          if (isMobile) {
+            if (!isRecording && !isResponsePlaying) {
+              recognition.start();
+            } else if (isRecording) {
+              recognition.stop();
+            }
+          } else {
+            alwaysOn = !alwaysOn;
+            if (alwaysOn && !isRecording && !isResponsePlaying) {
+              recognition.start();
+            } else if (!alwaysOn && isRecording) {
+              recognition.stop();
+            }
+          }
+        } else {
+          // Fallback using Recorder.js
+          if (!isRecording) {
+            isRecording = true;
+            microphoneBtn.classList.add('active');
+            if (window.recorder) {
+              window.recorder.record();
+            }
+          } else {
+            isRecording = false;
+            microphoneBtn.classList.remove('active');
+            if (window.recorder) {
+              window.recorder.stop();
+              window.recorder.exportWAV(function(blob) {
+                const formData = new FormData();
+                formData.append('audio_data', blob, 'recording.wav');
+                fetch('/speech-to-text', {
+                  method: 'POST',
+                  body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (data.error) {
+                    appendMessage("Bujji: Error: " + data.error);
+                  } else {
+                    appendMessage("Me: " + data.transcript);
+                    sendQuery(data.transcript);
+                  }
+                  window.recorder.clear();
+                })
+                .catch(err => {
+                  console.error('Error in speech-to-text:', err);
+                  window.recorder.clear();
+                });
+              });
+            }
+          }
+        }
+      });
+
+      sendTextBtn.addEventListener('click', () => {
+        const text = textInput.value.trim();
+        if (text) {
+          appendMessage("Me: " + text);
+          sendQuery(text);
+          textInput.value = "";
+        }
+      });
+      textInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') sendTextBtn.click();
+      });
+
+      const appendMessage = message => {
+        const p = document.createElement('p');
+        p.textContent = message;
+        conversationDiv.appendChild(p);
+        conversationDiv.scrollTop = conversationDiv.scrollHeight;
+      };
+    })();
+  </script>
+</body>
+</html>
