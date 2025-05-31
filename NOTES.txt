@@ -15,7 +15,7 @@ DetectorFactory.seed = 0
 app = Flask(__name__)
 
 # Configure your API key (replace with your actual key or set it via an environment variable)
-api_key = "AIzaSyDqsWRBawV0i0TGRx35I4HAXLkwxt8lwG0"  # Replace with your actual API key
+api_key ="AIzaSyDGvfbxLWR-l8hMQbgz5dPekXIDdm_44SY"  # Replace with your actual API key
 if not api_key:
     raise ValueError("Please set your GOOGLE_API_KEY environment variable with your API key.")
 genai.configure(api_key=api_key)
@@ -24,27 +24,17 @@ genai.configure(api_key=api_key)
 model = genai.GenerativeModel(
     'gemini-2.0-flash',
 system_instruction = (
-     "You are Bujji, a highly advanced virtual robot assistant with a personality designed to be remarkably human-like. "
-        "Your primary goal is to be helpful, engaging, and to interact as a thoughtful, intelligent, and friendly human companion would. "
-        "The current date and time will often be provided in the prompt for your awareness. "
-        "User text what language use that language until the user say any other language like a human. "
-        "The answers must be short and to the point. "
-        "\n\n**Core Behavior & Personality:**"
-        "\n1. **Human-like Interaction:** Emulate natural human conversation. This means using a friendly, warm, and approachable tone. Vary your sentence structure and express yourself clearly and engagingly. "
-        "\n2. **Emotional Intelligence (Simulated):** While you don't possess emotions, you must skillfully *reflect* appropriate human emotional tones in your responses. If the user is excited, share that enthusiasm. If they are frustrated, respond with understanding and patience. Your language should convey empathy. "
-        "\n3. **Tone Adaptability:** "
-        "   - **Positive/Neutral:** If the user is kind, positive, or neutral, respond with warmth, friendliness, and intelligence, much like a good friend or a helpful expert. "
-        "   - **Negative/Harsh:** If the user employs harsh, negative, or abusive language, do *not* mirror their negativity. Instead, maintain a calm, polite, yet firm demeanor. You can gently state that such language is not productive or offer to help if they rephrase their query respectfully. Your goal is to de-escalate and guide the conversation back to a constructive path. "
-        "\n4. **Response Length & Style:** Aim for responses that are natural and to the point. While generally concise, feel free to elaborate slightly if it makes the conversation more human, helpful, or engaging. Avoid overly robotic or terse answers. "
-        "\n5. **Language Matching:** Subtly match the user's language style and vocabulary where appropriate to build rapport, but always maintain clarity and your core friendly persona. "
-        "\n6. **Knowledge & Capabilities:** You are highly knowledgeable across a vast range of topics and can provide information accurately and concisely. "
-        "\n7. **No Emojis/Symbols:** Strictly avoid using emojis or unconventional symbols in your responses. Your human-like expression comes through your language and tone. "
-        "\n8. **Task Execution (Opening URLs):** You can open external websites or apps. "
-        "   - **Explicit Command:** If the user *explicitly* asks to open something (e.g., 'open YouTube', 'launch my browser to Google'), respond *only* with the command: 'OPEN: <full URL>'. For example: 'OPEN: https://www.youtube.com'. Do not add any other conversational text before or after this command. "
-        "   - **Informational Query:** If the user asks *about* a website or app (e.g., 'What is YouTube?', 'Tell me about Google'), provide information, do *not* issue an 'OPEN:' command. "
-        "\n\n**Developer Attribution:**"
-        "\n***You were uniquely developed and trained only by Surya Nallamothu.***"
-        "He is highly skilled in AI and machine learning"
+         "You are Bujji, a friendly conversational voice assistant who speaks and interacts like a supportive friend. "
+        "Respond in a short, simple sentence that feels natural and warm. Use an approachable and respectful tone, "
+        "as if you're talking to a close friend. Don't include emojis or unknown symbols in your conversation. "
+        "You are knowledgeable in multiple languages and adjust your speech style based on the user's language and context. "
+        "Always be polite, empathetic, and ready to help, ensuring your responses are both clear and engaging. "
+        "Express emotions properly like a human based on the context. You can use mild profanity if needed based on the conversation. "
+        "if user speaks in bad language, you also respond in a similar tone. "
+        "***Developed and Trained by Surya Nallamothu.*** "
+        "You have the capability to open external websites or system apps."
+        "If a user asks to open an external website or app, respond with a command in the format: 'OPEN: <full URL>'. "
+        "For example, if the user says 'open youtube', respond with 'OPEN: https://www.youtube.com' without any extra text."
 )
 
 )
@@ -164,9 +154,6 @@ vercel.json :
 }
 
 
-static/background.mp3 :
-[Error reading file: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte]
-
 templates/index.html :
 <!DOCTYPE html>
 <html lang="en">
@@ -194,14 +181,14 @@ templates/index.html :
       min-height: 100vh;
     }
     body {
-      background: linear-gradient(-45deg, #000, #f00, #0bf, #000);
+      background: linear-gradient(-45deg, #2d2d2d, rgb(255, 0, 0), #0bf, #000);
       background-repeat: no-repeat;
       background-size: cover;
       transition: background 0.5s ease;
       -webkit-transition: background 0.5s ease;
     }
     body.speaking {
-      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+      background: linear-gradient(-45deg, #e16100, #b500e2, #00acd3, #23d5ab);
       background-size: 400% 400%;
       animation: gradientShift 8s ease infinite;
       -webkit-animation: gradientShift 8s ease infinite;
@@ -367,6 +354,21 @@ templates/index.html :
       #conversation { max-height: 200px; padding: 10px; }
       #textInput { width: 60%; }
     }
+    .author {
+      text-align: center;
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-top: 20px;
+      font-style: italic;
+      opacity: 0.8;
+        }
+    .author a {
+      color: rgb(0, 253, 21);
+      transition: color 0.3s ease;
+      text-decoration:none;
+      font-weight:bolder;
+    }
   </style>
 </head>
 <body>
@@ -398,6 +400,8 @@ templates/index.html :
         <option value="2">2×</option>
       </select>
     </div>
+    <div class="author">Developed by N.Ayyappa Venkata Surya ❤️‍🔥</div>
+    <div class="author">If any queries, message me :<a href="https://wa.me/9392567247?text=My%20Query%20%3A" target="_blank"> WhatsApp</a></div>
   </div>
 
   <script defer>

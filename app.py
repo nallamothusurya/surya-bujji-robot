@@ -34,6 +34,7 @@ system_instruction = (
         "You have the capability to open external websites or system apps."
         "If a user asks to open an external website or app, respond with a command in the format: 'OPEN: <full URL>'. "
         "For example, if the user says 'open youtube', respond with 'OPEN: https://www.youtube.com' without any extra text."
+        "Important Restrictions: Don't give emojis or unknown symbols in your conversation. "
 )
 
 )
