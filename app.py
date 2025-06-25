@@ -3,208 +3,120 @@ import google.generativeai as genai
 from gtts import gTTS
 import io
 import base64
-from langdetect import detect, DetectorFactory # Ensure langdetect is installed
+from langdetect import detect, DetectorFactory
 from gtts.lang import tts_langs
-import speech_recognition as sr # Ensure SpeechRecognition and PyAudio are installed
+import speech_recognition as sr
 import datetime
-import mimetypes # For image type detection
 
 # Ensure consistent language detection
 DetectorFactory.seed = 0
 
 app = Flask(__name__)
 
-# --- IMPORTANT: Configure your API key ---
-# Replace with your actual key or set it via an environment variable
-# e.g., GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-api_key = "AIzaSyDGvfbxLWR-l8hMQbgz5dPekXIDdm_44SY"
-if not api_key or api_key == "YOUR_GOOGLE_API_KEY":
-    print("WARNING: GOOGLE_API_KEY is not set or is using the placeholder. Please set your API key in app.py.")
-    # raise ValueError("Please set your GOOGLE_API_KEY with your API key.") # Uncomment to make it mandatory
+# Configure your API key (replace with your actual key or set it via an environment variable)
+api_key ="AIzaSyDGvfbxLWR-l8hMQbgz5dPekXIDdm_44SY"  # Replace with your actual API key
+if not api_key:
+    raise ValueError("Please set your GOOGLE_API_KEY environment variable with your API key.")
 genai.configure(api_key=api_key)
 
-
-# --- Model Configuration ---
-# For multimodal capabilities (text + image), gemini-1.5-flash-latest is a good choice.
-# If your "gemini-2.0-flash" is a specific multimodal model you have access to, use that.
-# Otherwise, this configuration assumes a model that can handle image inputs.
-MODEL_NAME = "gemini-2.0-flash" # Using a known multimodal model
-
-# Updated system instruction to acknowledge visual input
-SYSTEM_INSTRUCTION = (
-    "You are Bujji, a friendly conversational voice assistant who speaks and interacts like a supportive friend. "
-    "Respond in a short, simple sentence that feels natural and warm. Use an approachable and respectful tone, "
-    "as if you're talking to a close friend. **Don't include emojis or unknown symbols in your conversation.** "
-    "You are knowledgeable in multiple languages and adjust your speech style based on the user's language and context. "
-    "Always be polite, empathetic, and ready to help, ensuring your responses are both clear and engaging. "
-    "Express emotions properly like a human based on the context. You can use mild profanity if needed based on the conversation. "
-    "If a user speaks in bad language, you also respond in a similar tone. "
-    "***Developed and Trained by Surya Nallamothu.*** "
-    "You have the capability to open external websites or system apps. "
-    "If a user asks to open an external website or app, respond with a command in the format: 'OPEN: <full URL>'. "
-    "For example, if the user says 'open youtube', respond with 'OPEN: https://www.youtube.com' without any extra text. "
-    "You can now also 'see' through a camera. If an image is provided with the query, you can comment on what you see if it's relevant to the conversation or if asked. "
-    "Important Restrictions: Don't give emojis or unknown symbols in your conversation. "
+# Initialize the Gemini model with updated system instructions.
+model = genai.GenerativeModel(
+    'gemini-2.0-flash',
+system_instruction = (
+         "You are Bujji, a friendly conversational voice assistant who speaks and interacts like a supportive friend. "
+        "Respond in a short, simple sentence that feels natural and warm. Use an approachable and respectful tone, "
+        "as if you're talking to a close friend. Don't include emojis or unknown symbols in your conversation. "
+        "You are knowledgeable in multiple languages and adjust your speech style based on the user's language and context. "
+        "Always be polite, empathetic, and ready to help, ensuring your responses are both clear and engaging. "
+        "Express emotions properly like a human based on the context. You can use mild profanity if needed based on the conversation. "
+        "if user speaks in bad language, you also respond in a similar tone. "
+        "***Developed and Trained by Surya Nallamothu.*** "
+        "You have the capability to open external websites or system apps."
+        "If a user asks to open an external website or app, respond with a command in the format: 'OPEN: <full URL>'. "
+        "For example, if the user says 'open youtube', respond with 'OPEN: https://www.youtube.com' without any extra text."
+        "Important Restrictions: Don't give emojis or unknown symbols in your conversation. "
+        "Example speaking style : హలో ఇక్కడ నేను ఒక ఏ ఏ పవర్డ్ సెర్చ్ ఇంజన్ ని డెవలప్ చేశాను సో ఈ సెర్చ్ ఇంజన్ ఎలా వర్క్ అయిద్దంటే గూగుల్ అండ్ మైక్రోసాఫ్ట్ యొక్క ఇన్ఫర్మేషన్ ని ఇంటిగ్రేట్ చేసి ఒక విజువలైజేషన్ వే లో మనకి ఏ ఇన్ఫర్మేషన్ అయినా సరే డీటెయిల్డ్ గా మనకి ఎక్స్ప్లెయిన్ చేస్తుంది ఫర్ ఎగ్జాంపుల్ మనం ఏదైనా ఒక మైండ్ లో ఉన్న ఏదో ఒక టాపిక్ గురించి మనం తెలుసుకోవాలనుకుంటున్నాం ఫర్ ఎగ్జాంపుల్ నా పరంగా చూసుకుంటే హెచ్ టి ఎం ఎల్ సి ఎస్ ఎస్ జావాస్క్రిప్ట్ గురించి అంటే మనం ఫ్రంట్ ఎండ్ లాంగ్వేజ్ గురించి తెలుసుకుందాం అనుకుంటున్నా సో ఆ ఇన్ఫర్మేషన్ ఏదన్నా ఉందా అని చూసుకుంటున్నా సో కంప్లీట్ కోర్స్ అని చెప్పి మనం ఇక్కడ ఇన్ఫర్మేషన్ ఇచ్చామంటే నాకు ఆ కంప్లీట్ కోర్స్ మొత్తం వచ్చిద్ది వెయిట్ చేస్తుంది సారీ అండ్ సెర్చింగ్ అవుతూ ఉంది హమ్మ్ ఓకే ఇక్కడ చూశారు కదా హెచ్ టి ఎం ఎల్ సి ఎస్ ఎస్ జావాస్క్రిప్ట్ కంప్లీట్ కోర్ స్ట్రక్చర్ సో ఇదిగో అసలు హెచ్ టి ఎం ఎల్ అంటే ఏంటో కంప్లీట్ స్టార్టింగ్ నుంచి ఎండింగ్ వరకు మనకి ఇలా ఇన్ఫర్మేషన్ అంతా ప్రొవైడ్ చేస్తుంది సి ఎస్ ఎస్ సి ఎస్ ఎస్ అంటే ఏంటి మొత్తం టోటల్ గా ఫైనల్ గా హెచ్ టి ఎం ఎల్ సి ఎస్ ఎస్ చెప్పిన తర్వాత మనకి ఒక ఒక ప్రోగ్రాం అనేది ఎలా ఉంటది ఏంటి అనేది కూడా ఇన్ఫర్మేషన్ ఇక్కడ ఉంది తర్వాత జావాస్క్రిప్ట్ ఎలా ఇంటరాక్ట్ అవుతుంది అనే విషయం ఇన్ఫర్మేషన్ కూడా ఇక్కడ ఉంది జావాస్క్రిప్ట్ లో డేటా టైప్స్ గురించి కూడా ఇక్కడ ఇన్ఫర్మేషన్ అనేది ఇక్కడ ఉంది సో ఈ విధంగా మనకి విజువలైజేషన్ అనేది జరిగిద్ది సో ఈ విధంగా మనకి ఏ ఒక్క జస్ట్ ఈ కోడింగ్ టాపిక్ ఏ కాదు ఏ ఇన్ఫర్మేషన్ అయినా ఏ టాపిక్ గురించి అయినా ఈ అప్లికేషన్ అనేది మనకి హెల్ప్ అవుద్ది ఈ అప్లికేషన్ అనేది ఎలా డెవలప్ చేశాను అంటే బ్యాక్ ఎండ్ లో గూగుల్ యొక్క డేటాబేస్ తో కలిపి అంటే గూగుల్ యొక్క ఎల్ ఎల్ ఎం ని యూస్ చేసి అలాగే ఆ మైక్రోసాఫ్ట్ యొక్క ఇమేజెస్ విజువలైజేషన్ కి మైక్రోసాఫ్ట్ ఇమేజెస్ ని యూస్ చేసి డైరెక్ట్ గా వాటిని రెండిటిని లింక్ అప్ చేసి ఆ రెండిటికీ మధ్య కనెక్షన్స్ ని ఇంటరాక్ట్ చేసి నేను ఈ అప్లికేషన్ డెవలప్ చేశాను సో ఈ టైప్ ఆఫ్ అప్లికేషన్స్ అండ్ ఎలా డెవలప్ చేశాను ఏంటి కోడింగ్ స్కిల్స్ కోసం ఫ్యూచర్ లో నేను ఫర్దర్ వీడియోస్ చేస్తాను సో ఇంకా మరిన్ని అప్డేట్స్ కోసం ఇప్పుడే మన ఛానల్ ని సబ్స్క్రైబ్ చేయండి"
 )
 
-try:
-    model = genai.GenerativeModel(
-        MODEL_NAME,
-        system_instruction=SYSTEM_INSTRUCTION
-    )
-except Exception as e:
-    print(f"Error initializing GenerativeModel ({MODEL_NAME}): {e}")
-    print("Please ensure your API key is correct and the model name is valid for multimodal input if using vision.")
-    model = None # Fallback or raise error
+)
 
 # In-memory caches for Gemini responses and TTS audio
 gemini_cache = {}
 tts_cache = {}
 
-# Cache supported TTS languages globally
-try:
-    supported_tts_languages = tts_langs()
-except Exception as e:
-    print(f"Error fetching gTTS supported languages: {e}. TTS might not work correctly.")
-    supported_tts_languages = {'en': 'English'} # Fallback
+# Cache supported TTS languages globally to avoid repeated calls
+supported_tts_languages = tts_langs()
 
 def get_current_datetime_string():
+    """
+    Returns the current date and time formatted as:
+    'Weekday, Month Day, Year HH:MM AM/PM'
+    """
     now = datetime.datetime.now()
     return now.strftime("%A, %B %d, %Y %I:%M %p")
 
-def get_gemini_response(prompt_parts):
-    # For caching, create a key from the text parts of the prompt
-    cache_key = "".join([part for part in prompt_parts if isinstance(part, str)])
-    
-    if cache_key in gemini_cache:
-        return gemini_cache[cache_key]
-    
-    if not model:
-        return "Sorry, the AI model is not available at the moment."
-
+def get_gemini_response(prompt):
+    if prompt in gemini_cache:
+        return gemini_cache[prompt]
     try:
         response = model.generate_content(
-            prompt_parts, # Send list of parts (text, image)
+            prompt,
             generation_config=genai.types.GenerationConfig(max_output_tokens=500)
         )
         text_response = response.text.strip()
-        gemini_cache[cache_key] = text_response
+        gemini_cache[prompt] = text_response
         return text_response
     except Exception as e:
-        print(f"Error generating content from Gemini: {e}")
-        # Check for specific errors like permission denied or API issues
-        if "API_KEY_INVALID" in str(e) or "PERMISSION_DENIED" in str(e):
-             return "Sorry, there's an issue with the API configuration. Please check the server logs."
-        if "image" in str(e).lower() and "support" in str(e).lower():
-            return f"Sorry, the current AI model ({MODEL_NAME}) might not support image input, or there was an image processing error."
-        return "Sorry, I encountered an error trying to understand that."
+        return "Sorry, I encountered an error."
 
 @app.route('/')
 def home():
+    # Render index.html from the templates folder.
     return render_template('index.html', languages=supported_tts_languages)
 
 @app.route('/query', methods=['POST'])
 def query():
-    if not model:
-         return jsonify({'error': 'AI Model not initialized'}), 500
     try:
-        data = request.json
-        history = data.get('history', '')
-        image_data_url = data.get('imageData') # Expecting a base64 data URL
-
+        history = request.json.get('history', '')
+        # Integrate the current date and time into the prompt.
         current_dt = get_current_datetime_string()
+        prompt = f"Current date and time: {current_dt}\n{history}Bujji:"
+        response_text = get_gemini_response(prompt)
         
-        # Construct prompt parts for Gemini (text and potentially image)
-        prompt_parts = [f"Current date and time: {current_dt}\n{history}Bujji:"]
-
-        if image_data_url:
-            try:
-                # Decode base64 image data URL
-                # Format is "data:[<mediatype>][;base64],<data>"
-                header, encoded = image_data_url.split(',', 1)
-                image_bytes = base64.b64decode(encoded)
-                
-                # Try to infer mime type from header, default to jpeg
-                mime_type = "image/jpeg" 
-                if ';base64' in header and 'data:' in header:
-                    potential_mime_type = header.split('data:')[1].split(';base64')[0]
-                    if '/' in potential_mime_type : # basic check for mime type format
-                         mime_type = potential_mime_type
-                
-                print(f"Received image with MIME type: {mime_type}")
-
-                image_part = {
-                    "mime_type": mime_type,
-                    "data": image_bytes
-                }
-                # Add image part *before* the main text prompt for better context flow with some models
-                prompt_parts.insert(0, image_part)
-                prompt_parts.insert(1, "Based on the preceding conversation and the following image (if any relevant visual information is present): ")
-
-            except Exception as e:
-                print(f"Error processing image data: {e}")
-                # Optionally inform the user or just proceed without image
-                prompt_parts.append("\n(Note: There was an issue processing an accompanying image.)")
-
-
-        response_text = get_gemini_response(prompt_parts)
-        
+        # Retrieve cached TTS audio if available or generate it
         if response_text in tts_cache:
             audio_bytes = tts_cache[response_text]
         else:
-            detected_lang = 'en' # Default
-            try:
-                if response_text: # Ensure text is not empty for langdetect
-                    detected_lang = detect(response_text)
-                if detected_lang not in supported_tts_languages:
-                    print(f"Language '{detected_lang}' not directly supported by gTTS, falling back to 'en'.")
-                    detected_lang = 'en'
-            except Exception as e:
-                print(f"Language detection failed: {e}. Defaulting to 'en'.")
+            # Detect language and generate TTS audio using gTTS
+            detected_lang = detect(response_text)
+            if detected_lang not in supported_tts_languages:
                 detected_lang = 'en'
-            
-            tts_obj = gTTS(text=response_text, lang=detected_lang, slow=False)
+            tts_obj = gTTS(text=response_text, lang=detected_lang)
             audio_data = io.BytesIO()
             tts_obj.write_to_fp(audio_data)
             audio_bytes = audio_data.getvalue()
-            if len(tts_cache) > 100: # Simple cache eviction
-                tts_cache.popitem() 
             tts_cache[response_text] = audio_bytes
         
         audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
         return jsonify({'response': response_text, 'audio': audio_b64})
     except Exception as e:
-        print(f"Error in /query endpoint: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/speech-to-text', methods=['POST'])
 def speech_to_text():
     if 'audio_data' not in request.files:
         return jsonify({'error': 'No audio file provided.'}), 400
-    
     audio_file = request.files['audio_data']
     recognizer = sr.Recognizer()
-    
     try:
         with sr.AudioFile(audio_file) as source:
             audio = recognizer.record(source)
-        # Attempt to recognize speech using Google Web Speech API
-        # You can specify language here if known, e.g., recognizer.recognize_google(audio, language="en-US")
         transcript = recognizer.recognize_google(audio)
         return jsonify({'transcript': transcript})
     except sr.UnknownValueError:
         return jsonify({'error': 'Could not understand audio.'}), 400
     except sr.RequestError as e:
-        # This can happen due to network issues or API key problems if using a service that requires one
-        print(f"Speech recognition request error: {e}")
-        return jsonify({'error': f'Speech recognition service error. Please check server logs.'}), 500
-    except Exception as e:
-        print(f"Generic error in speech_to_text: {e}")
-        return jsonify({'error': 'An unexpected error occurred during speech recognition.'}), 500
+        return jsonify({'error': f'Speech recognition error: {e}'}), 500
 
 if __name__ == '__main__':
-    # Make sure to run with SSL context if deploying to HTTPS,
-    # as camera access (getUserMedia) requires a secure context (HTTPS or localhost).
-    # For development, localhost is usually fine.
-    # For production, use a proper web server like Gunicorn + Nginx with SSL.
     app.run(host='0.0.0.0', port=5000, debug=True)
