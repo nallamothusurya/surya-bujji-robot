@@ -14,7 +14,7 @@ DetectorFactory.seed = 0
 app = Flask(__name__)
 
 # Configure your API key (replace with your actual key or set it via an environment variable)
-api_key ="AIzaSyDGvfbxLWR-l8hMQbgz5dPekXIDdm_44SY"  # Replace with your actual API key
+api_key ="AIzaSyCk0aaXLmUJPD8huof-nUobmzbJrwM3siE"  # Replace with your actual API key
 if not api_key:
     raise ValueError("Please set your GOOGLE_API_KEY environment variable with your API key.")
 genai.configure(api_key=api_key)
